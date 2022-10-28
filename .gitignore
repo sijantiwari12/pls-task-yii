@@ -322,6 +322,7 @@ local.properties
 .settings/
 .loadpath
 .recommenders
+apps/pls/www/assets
 
 # External tool builders
 .externalToolBuilders/

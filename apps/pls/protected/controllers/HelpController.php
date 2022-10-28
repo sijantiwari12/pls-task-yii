@@ -108,15 +108,27 @@ class HelpController extends Controller {
 		Feed::$cacheExpire = Yii::app()->params['latestUpdatesFeedCacheExp'];
 		$feed = Feed::loadRss(Yii::app()->params['latestUpdatesFeedUrl']);
 		$items = [];
+        $latestItems = [];
 		if (!empty($feed)) {
-			foreach ($feed->item as $item) {
-				$more = ' <a href="' . $item->link . '" target="_blank">Read more</a>';
-				$item->description = trim(str_replace(' [&#8230;]', '...' . $more, $item->description));
-				$item->description = preg_replace('/The post.*appeared first on .*\./', '', $item->description);
-			}
-			$items = $feed->item;
-		}
-		$this->render('updates', ['updates' => $items]);
-	}
+		    foreach ($feed->item as $item) {
+		       $items[] = $item;
 
+			}
+		    usort($items, function ($a, $b) {
+		        $a = strtotime($a->pubDate);
+		        $b = strtotime($b->pubDate);
+                if ($a == $b) {
+                    return 0;
+                }
+                return ($a > $b) ? -1 : 1;
+            });
+            $latestItems = array_slice($items, 0, 5, true);
+            foreach ($latestItems as $item) {
+                $more = ' <a href="' . $item->link . '" target="_blank">Read more</a>';
+                $item->description = trim(str_replace(' [&#8230;]', '...' . $more, $item->description));
+                $item->description = preg_replace('/The post.*appeared first on .*\./', '', $item->description);
+            }
+		}
+		$this->render('updates', ['updates' => $latestItems]);
+	}
 }

@@ -82,7 +82,13 @@ class SiteController extends Controller {
 				$this->redirect(Yii::app()->user->returnUrl);
 			}
 		}
-		$this->render('login', ['model' => $model]);
+        $latestUpdateFeed = $this->actionSlider(Feed::loadRss(Yii::app()->params['latestUpdatesFeedUrl']));
+        $latestBlogFeed   = $this->actionSlider(Feed::loadRss(Yii::app()->params['latestBlogFeedUrl']));
+        $this->render('login', [
+            'model' => $model,
+            'latestProduct' => (array) $latestUpdateFeed,
+            'latestBlogPost' => (array) $latestBlogFeed,
+        ]);
 	}
 
 	/**
@@ -110,4 +116,33 @@ class SiteController extends Controller {
 			}
 		}
 	}
+
+    /**
+     * @return mixed
+     * @param string $feed
+     * @throws FeedException
+     */
+    public function actionSlider($feed) {
+        Feed::$userAgent = Yii::app()->params['curlUserAgent'];
+        Feed::$cacheDir = Yii::app()->params['latestUpdatesFeedCacheDir'];
+        Feed::$cacheExpire = Yii::app()->params['latestUpdatesFeedCacheExp'];
+        $items = [];
+        if (!empty($feed)) {
+            foreach ($feed->item as $item) {
+                $items[] = $item;
+            }
+            usort($items, function ($a, $b) {
+                $a = strtotime($a->pubDate);
+                $b = strtotime($b->pubDate);
+                if ($a == $b) {
+                    return 0;
+                }
+                return ($a > $b) ? -1 : 1;
+            });
+
+            $items[0]->read_more = $items[0]->link;
+            $items[0]->description = preg_replace('/The post.*appeared first on .*\./', '', $items[0]->description);
+        }
+        return $items[0];
+    }
 }
